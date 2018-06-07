@@ -100,7 +100,6 @@ let handlers = {
 
             if (elementType === 'menuitem') {
                 // no need to proceed if the page is already loaded or there is no page definition present
-                if (!element.pageDoc && page) {
                     // set a loading message intially to the menuitem
                     Menu.setDocument(Navigation.getLoaderDoc(Menu.getLoadingMessage()), menuId)
                     // load the page
@@ -119,7 +118,6 @@ let handlers = {
                         // dissmiss any open modals
                         Navigation.dismissModal();
                     });
-                }
             }
         }
     }
