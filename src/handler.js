@@ -98,7 +98,27 @@ let handlers = {
             let elementType = element.nodeName.toLowerCase();
             let page = element.page;
 
-            
+            if (elementType === 'menuitem') {
+                // no need to proceed if the page is already loaded or there is no page definition present
+                // set a loading message intially to the menuitem
+                Menu.setDocument(Navigation.getLoaderDoc(Menu.getLoadingMessage()), menuId)
+                // load the page
+                page().then((doc) => {
+                    // if there is a document loaded, assign it to the menuitem
+                    if (doc) {
+                        // assign the pageDoc to disable reload everytime
+                    //    element.pageDoc = doc;
+                        Menu.setDocument(doc, menuId);    
+                    }
+                    // dissmiss any open modals
+                    Navigation.dismissModal();
+                }, (error) => {
+                    // if there was an error loading the page, set an error page to the menu item
+                    Menu.setDocument(Navigation.getErrorDoc(error), menuId);
+                    // dissmiss any open modals
+                    Navigation.dismissModal();
+                });
+            }
         }
     }
 };
