@@ -107,7 +107,7 @@ let handlers = {
                     // if there is a document loaded, assign it to the menuitem
                     if (doc) {
                         // assign the pageDoc to disable reload everytime
-                    //    element.pageDoc = doc;
+                        element.pageDoc = doc;
                         Menu.setDocument(doc, menuId);    
                     }
                     // dissmiss any open modals
