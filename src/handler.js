@@ -6,18 +6,15 @@ const hrefAttribute = 'data-href-page';
 const hrefOptionsAttribute = 'data-href-page-options';
 const hrefPageReplaceAttribute = 'data-href-page-replace';
 const modalCloseBtnAttribute = 'data-alert-dissmiss';
+const menuItemReloadAttribute = 'reloadOnSelect';
 
 /**
  * Page level default handlers.
  *
- * @private
- * @type {Object<Object<Function>>}
+ * @type {Object}
+ * @property {Object} select All the handlers associated to the select event.
  */
 let handlers = {
-    /**
-     * All the handlers associated to the select event.
-     * @type {Object}
-     */
     select: {
         /**
          * A handler to allow declaring anchors to other pages in the TVML templates.
@@ -100,24 +97,26 @@ let handlers = {
 
             if (elementType === 'menuitem') {
                 // no need to proceed if the page is already loaded or there is no page definition present
-                // set a loading message intially to the menuitem
-                Menu.setDocument(Navigation.getLoaderDoc(Menu.getLoadingMessage()), menuId)
-                // load the page
-                page().then((doc) => {
-                    // if there is a document loaded, assign it to the menuitem
-                    if (doc) {
-                        // assign the pageDoc to disable reload everytime
-                        element.pageDoc = doc;
-                        Menu.setDocument(doc, menuId);    
-                    }
-                    // dissmiss any open modals
-                    Navigation.dismissModal();
-                }, (error) => {
-                    // if there was an error loading the page, set an error page to the menu item
-                    Menu.setDocument(Navigation.getErrorDoc(error), menuId);
-                    // dissmiss any open modals
-                    Navigation.dismissModal();
-                });
+                if ((!element.pageDoc || element.getAttribute(menuItemReloadAttribute)) && page) {
+                    // set a loading message intially to the menuitem
+                    Menu.setDocument(Navigation.getLoaderDoc(Menu.getLoadingMessage()), menuId)
+                    // load the page
+                    page().then((doc) => {
+                        // if there is a document loaded, assign it to the menuitem
+                        if (doc) {
+                            // assign the pageDoc to disable reload everytime
+                            element.pageDoc = doc;
+                            Menu.setDocument(doc, menuId);
+                        }
+                        // dissmiss any open modals
+                        Navigation.dismissModal();
+                    }, (error) => {
+                        // if there was an error loading the page, set an error page to the menu item
+                        Menu.setDocument(Navigation.getErrorDoc(error), menuId);
+                        // dissmiss any open modals
+                        Navigation.dismissModal();
+                    });
+                }
             }
         }
     }
@@ -125,9 +124,6 @@ let handlers = {
 
 /**
  * Sets the default handlers options
- *
- * @inner
- * @alias module:handler.setOptions
  *
  * @param {Object} cfg The configuration object {defaults}
  */
@@ -141,21 +137,19 @@ function setOptions(cfg = {}) {
  * Iterates over the events configuration and add event listeners to the document.
  *
  * @example
- * {
- *     events: {
- *         'scroll': function(e) { // do the magic here },
- *         'select listItemLockup title': 'onTitleSelect',
- *         'someOtherEvent': ['onTitleSelect', function(e) { // some other magic }, ...]
- *     },
- *     onTitleSelect: function(e) {
- *         // do the magic here
+ *     {
+ *         events: {
+ *             'scroll': function(e) { // do the magic here },
+ *             'select listItemLockup title': 'onTitleSelect',
+ *             'someOtherEvent': ['onTitleSelect', function(e) { // some other magic }, ...]
+ *         },
+ *         onTitleSelect: function(e) {
+ *             // do the magic here
+ *         }
  *     }
- * }
- *
+ * 
  * @todo Implement querySelectorAll polyfill (it doesn't seem to exist on the xml document)
- *
- * @private
- *
+ * 
  * @param {Document} doc            The document to add the listeners on.
  * @param {Object} cfg              The page object configuration.
  * @param {Boolean} [add=true]      Whether to add or remove listeners. Defaults to true (add)
@@ -197,55 +191,20 @@ function setListeners(doc, cfg = {}, add = true) {
 }
 
 /**
- * Iterates over the events configuration and add event listeners to the document.
+ * Syntactical sugar to {setListeners} with add=true
  *
- * @example
- * ATV.Handler.addListeners(tvmlDoc,
- * {
- *     events: {
- *         'scroll': function(e) { // do the magic here },
- *         'select listItemLockup title': 'onTitleSelect',
- *         'someOtherEvent': ['onTitleSelect', function(e) { // some other magic }, ...]
- *     },
- *     onTitleSelect: function(e) {
- *         // do the magic here
- *     }
- * });
- *
- * @todo Implement querySelectorAll polyfill (it doesn't seem to exist on the xml document)
- *
- * @inner
- * @alias module:handler.addListeners
- *
- * @param {Document} doc            The document to add the listeners on.
- * @param {Object} cfg              The page object configuration.
+ * @param {Document} doc        The document to add the listeners on.
+ * @param {Object} cfg          The page object configuration.
  */
 function addListeners(doc, cfg) {
     setListeners(doc, cfg, true);
 }
 
 /**
- * Iterates over the events configuration and remove event listeners from document.
+ * Syntactical sugar to {setListeners} with add=false
  *
- * ATV.Handler.removeListeners(tvmlDoc,
- * {
- *     events: {
- *         'scroll': function(e) { // do the magic here },
- *         'select listItemLockup title': 'onTitleSelect',
- *         'someOtherEvent': ['onTitleSelect', function(e) { // some other magic }, ...]
- *     },
- *     onTitleSelect: function(e) {
- *         // do the magic here
- *     }
- * });
- * 
- * @todo Implement querySelectorAll polyfill (it doesn't seem to exist on the xml document)
- *
- * @inner
- * @alias module:handler.removeListeners
- *
- * @param {Document} doc            The document to add the listeners on.
- * @param {Object} cfg              The page object configuration.
+ * @param {Document} doc        The document to add the listeners on.
+ * @param {Object} cfg          The page object configuration.
  */
 function removeListeners(doc, cfg) {
     setListeners(doc, cfg, false);
@@ -255,7 +214,6 @@ function removeListeners(doc, cfg) {
  * Iterates over the list of page level default handlers and set/unset listeners on the provided document.
  *
  * @private
- *
  * @param {Document} doc            The document to set/unset listeners on.
  * @param {Boolean} [add=true]      Whether to add or remove listeners. Defaults to true (add)
  */
@@ -280,8 +238,6 @@ function setDefaultHandlers(doc, add = true) {
 /**
  * Syntactical sugar to {setDefaultHandlers} with add=true
  *
- * @private
- *
  * @param {Document} doc        The document to add the listeners on.
  */
 function addDefaultHandlers(doc) {
@@ -291,8 +247,6 @@ function addDefaultHandlers(doc) {
 /**
  * Syntactical sugar to {setDefaultHandlers} with add=false
  *
- * @private
- *
  * @param {Document} doc        The document to add the listeners on.
  */
 function removeDefaultHandlers(doc) {
@@ -301,9 +255,7 @@ function removeDefaultHandlers(doc) {
 
 /**
  * Sets/unsets the event handlers as per the event configuration.
- * Also adds/removes the [default page level handlers]{@link handlers}.
- *
- * @private
+ * Also adds/removes the default page level handlers.
  * 
  * @param {Document}  doc           The page document.
  * @param {Obejct}  cfg             Page configuration object
@@ -320,28 +272,20 @@ function setHandlers(doc, cfg, add = true) {
 }
 
 /**
- * Sets the event handlers as per the event configuration.
- * Also adds the [default page level handlers]{@link handlers}.
+ * Syntactical sugar to {setHandlers} with add=true
  *
- * @inner
- * @alias module:handler.addAll
- *
- * @param {Document}  doc           The page document.
- * @param {Obejct}  cfg             Page configuration object
+ * @param {Document} doc        The document to add the listeners on.
+ * @param {Object} cfg          Page configuration object
  */
 function addHandlers(doc, cfg) {
     setHandlers(doc, cfg, true);
 }
 
 /**
- * Unset the event handlers as per the event configuration.
- * Also removes the [default page level handlers]{@link handlers}.
+ * Syntactical sugar to {setHandlers} with add=false
  *
- * @inner
- * @alias module:handler.removeAll
- *
- * @param {Document}  doc           The page document.
- * @param {Obejct}  cfg             Page configuration object
+ * @param {Document} doc        The document to add the listeners on.
+ * @param {Object} cfg          Page configuration object
  */
 function removeHandlers(doc, cfg) {
     setHandlers(doc, cfg, false);
@@ -350,15 +294,32 @@ function removeHandlers(doc, cfg) {
 /**
  * A minimalistic Event handling library for Apple TV applications
  *
- * @module handler
- *
  * @author eMAD <emad.alam@yahoo.com>
  *
  */
 export default {
+    /**
+     * @type {setOptions}
+     */
     setOptions: setOptions,
+    /**
+     * Adds an event listener to the document with event configuration options.
+     * @type {addListener}
+     */
     addListeners: addListeners,
+    /**
+     * Removes previously added listeners from the document having event configuration options.
+     * @type {[type]}
+     */
     removeListeners: removeListeners,
+    /**
+     * Adds all the event listeners from the document including the default ones.
+     * @type {addHandlers}
+     */
     addAll: addHandlers,
+    /**
+     * Removes all the event listeners from the document including the default ones.
+     * @type {removeHandlers}
+     */
     removeAll: removeHandlers
 };
